@@ -1,8 +1,13 @@
 from pathlib import Path
 import csv
-from reportlab.platypus import SimpleDocTemplate , Table
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4, landscape
 
-def get_valid_file_path ():
+
+def get_valid_file_path():
     while True:
         file_path = input("Please enter the file path: ")
         path = Path(file_path)
@@ -12,29 +17,118 @@ def get_valid_file_path ():
             print("Please enter a valid file path")
 
 
-def convert_csv_to_pdf () :
+def convert_csv_to_pdf():
     while True:
         csv_path = get_valid_file_path()
-        if csv_path.suffix.lower()!=".csv":
-            print("Please select a csv file")
+
+        if csv_path.suffix.lower() != ".csv":
+            print("Please select a CSV file.")
             continue
 
-        else :
-            with open (csv_path , "r",newline="",encoding="utf-8") as file :
-                reader = csv.reader(file)
-                data = list(reader)
+        with open(csv_path, "r", newline="", encoding="utf-8-sig") as file:
+            reader = csv.reader(file)
+            data = list(reader)
 
-                if not data :
-                    print("he csv file is empty")
-                    return
-                max_colums = max(len(row) for row in data)
-                for row in data :
-                    while len(row) < max_colums :
-                        row.append("")
-                pdf_path = csv_path.with_suffix(".pdf")
+        if not data:
+            print("The CSV file is empty.")
+            return
 
-                pdf = SimpleDocTemplate(str(pdf_path))
-                table = Table(data)
+        # Make sure all rows have the same number of columns.
+        max_columns = max(len(row) for row in data)
 
-                pdf.build([table])
-                print(f"PDF saved to {pdf_path}")
+        for row in data:
+            row.extend([""] * (max_columns - len(row)))
+
+        styles = getSampleStyleSheet()
+
+        # Use smaller text so more data fits on each page.
+        cell_style = styles["BodyText"]
+        cell_style.fontName = "Helvetica"
+        cell_style.fontSize = 7
+        cell_style.leading = 8.5
+        cell_style.wordWrap = "LTR"
+
+        header_style = styles["BodyText"]
+        header_style.fontName = "Helvetica-Bold"
+        header_style.fontSize = 7
+        header_style.leading = 8.5
+
+        table_data = []
+
+        for row_index, row in enumerate(data):
+            style = header_style if row_index == 0 else cell_style
+
+            table_data.append([
+                Paragraph(
+                    str(value).replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\n", "<br/>"),
+                    style
+                )
+                for value in row
+            ])
+
+        # Use landscape orientation for wide tables.
+        pdf_path = csv_path.with_suffix(".pdf")
+
+        pdf = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=landscape(A4),
+            leftMargin=20,
+            rightMargin=20,
+            topMargin=25,
+            bottomMargin=25
+        )
+
+        available_width = (
+                landscape(A4)[0] - pdf.leftMargin - pdf.rightMargin
+        )
+
+        # Give more space to columns containing longer text.
+        weights = [
+            1,  # Order_Id
+            1,  # Date
+            1.7,  # Customer
+            1.2,  # Region
+            1.5,  # Product
+            1.0,  # Category
+            0.4,  # Quantity
+            0.8,  # Unit_Price
+            0.9,  # Total
+            0.9,  # Status
+            2.5  # Notes
+        ]
+
+        # Adapt the widths if the CSV has a different number of columns.
+        if max_columns != len(weights):
+            weights = [1.0] * max_columns
+
+        total_weight = sum(weights)
+
+        column_widths = [
+            available_width * weight / total_weight
+            for weight in weights
+        ]
+
+        table = Table(
+            table_data,
+            colWidths=column_widths,
+            repeatRows=1,
+            hAlign="LEFT"
+        )
+
+        table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+
+        pdf.build([table])
+
+        print(f"PDF saved to {pdf_path}")
+        return
