@@ -5,6 +5,8 @@ from reportlab.lib import colors
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import Spacer
+from reportlab.lib.units import cm
 
 
 def get_valid_file_path():
@@ -128,7 +130,80 @@ def convert_csv_to_pdf():
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]))
 
-        pdf.build([table])
+        pdf.build(
+            [table],
+            onFirstPage=add_page_number,
+            onLaterPages=add_page_number
+        )
+
+        print(f"PDF saved to {pdf_path}")
+        return
+
+
+def add_page_number(canvas, doc):
+    canvas.saveState()
+
+    page_width, page_height = doc.pagesize
+
+    canvas.setFont("Helvetica", 9)
+    canvas.drawCentredString(
+        page_width / 2,
+        12,
+        f"Page {doc.page}"
+    )
+
+    canvas.restoreState()
+
+
+def convert_txt_to_pdf():
+    while True:
+        txt_file = get_valid_file_path()
+
+        if txt_file.suffix.lower() != ".txt":
+            print("Please select a TXT file.")
+            continue
+
+        with open(txt_file, "r", encoding="utf-8-sig") as file:
+            lines = []
+
+            for line in file:
+                lines.append(line.strip())
+
+        if not any(lines):
+            print("The TXT file is empty.")
+            return
+
+        styles = getSampleStyleSheet()
+        body_style = styles["BodyText"]
+        body_style.fontSize = 11
+        body_style.leading = 16
+
+        story = []
+
+        for line in lines:
+            if line:
+                paragraph = Paragraph(line, body_style)
+                story.append(paragraph)
+                story.append(Spacer(1, 8))
+            else:
+                story.append(Spacer(1, 8))
+
+        pdf_path = txt_file.with_suffix(".pdf")
+
+        pdf = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=A4,
+            leftMargin=2 * cm,
+            rightMargin=2 * cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm
+        )
+
+        pdf.build(
+            story,
+            onFirstPage=add_page_number,
+            onLaterPages=add_page_number
+        )
 
         print(f"PDF saved to {pdf_path}")
         return
