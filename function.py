@@ -7,6 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import Spacer
 from reportlab.lib.units import cm
+import shutil
 
 
 def get_valid_file_path():
@@ -207,3 +208,38 @@ def convert_txt_to_pdf():
 
         print(f"PDF saved to {pdf_path}")
         return
+
+
+def organize_files_by_extension():
+    while True:
+        folder_path = Path(
+            input("Please enter the folder path: ").strip().strip('"')
+        )
+
+        if not folder_path.exists() or not folder_path.is_dir():
+            print("Please enter a valid folder path.")
+            continue
+
+        break
+
+    files = list(folder_path.iterdir())
+    organized_count = 0
+
+    for file_path in files:
+        if not file_path.is_file() or not file_path.suffix:
+            continue
+
+        folder_name = file_path.suffix[1:].upper()
+        destination_folder = folder_path / folder_name
+        destination_folder.mkdir(exist_ok=True)
+
+        destination_file = destination_folder / file_path.name
+
+        if destination_file.exists():
+            print(f"Skipped duplicate file: {file_path.name}")
+            continue
+
+        shutil.move(str(file_path), str(destination_file))
+        organized_count += 1
+
+    print(f"Organization complete. {organized_count} files moved.")
