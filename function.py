@@ -20,13 +20,15 @@ def get_valid_file_path():
             print("Please enter a valid file path")
 
 
-def convert_csv_to_pdf():
-    while True:
-        csv_path = get_valid_file_path()
+
+def convert_csv_to_pdf(csv_path):
+        csv_path = Path(csv_path)
+
+        if not csv_path.is_file():
+            raise FileNotFoundError("CSV file not found.")
 
         if csv_path.suffix.lower() != ".csv":
-            print("Please select a CSV file.")
-            continue
+            raise ValueError("Please select a CSV file.")
 
         with open(csv_path, "r", newline="", encoding="utf-8-sig") as file:
             reader = csv.reader(file)
@@ -137,8 +139,7 @@ def convert_csv_to_pdf():
             onLaterPages=add_page_number
         )
 
-        print(f"PDF saved to {pdf_path}")
-        return
+        return pdf_path
 
 
 def add_page_number(canvas, doc):
