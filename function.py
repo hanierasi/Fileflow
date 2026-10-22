@@ -21,6 +21,7 @@ def get_valid_file_path():
 
 
 def convert_csv_to_pdf(csv_path):
+    """Convert a CSV file into a formatted PDF document."""
     csv_path = Path(csv_path)
 
     if not csv_path.is_file():
@@ -33,9 +34,12 @@ def convert_csv_to_pdf(csv_path):
         reader = csv.reader(file)
         data = list(reader)
 
-    if not data:
-        print("The CSV file is empty.")
-        return
+    if not data or not any(
+            value.strip()
+            for row in data
+            for value in row
+    ):
+        raise ValueError("The CSV file is empty.")
 
     # Make sure all rows have the same number of columns.
     max_columns = max(len(row) for row in data)
@@ -86,8 +90,7 @@ def convert_csv_to_pdf(csv_path):
     )
 
     available_width = (
-            landscape(A4)[0] - pdf.leftMargin - pdf.rightMargin
-    )
+            landscape(A4)[0] - pdf.leftMargin - pdf.rightMargin)
 
     # Give more space to columns containing longer text.
     weights = [
@@ -141,22 +144,9 @@ def convert_csv_to_pdf(csv_path):
     return pdf_path
 
 
-def add_page_number(canvas, doc):
-    canvas.saveState()
-
-    page_width, page_height = doc.pagesize
-
-    canvas.setFont("Helvetica", 9)
-    canvas.drawCentredString(
-        page_width / 2,
-        12,
-        f"Page {doc.page}"
-    )
-
-    canvas.restoreState()
-
-
 def convert_txt_to_pdf(txt_path):
+    """Convert a text file into a PDF document."""
+
     txt_path = Path(txt_path)
 
     if not txt_path.is_file():
@@ -210,9 +200,24 @@ def convert_txt_to_pdf(txt_path):
 
     return pdf_path
 
+def add_page_number(canvas, doc):
+    """Add a page number to each PDF page."""
+    canvas.saveState()
 
+    page_width, page_height = doc.pagesize
+
+    canvas.setFont("Helvetica", 9)
+    canvas.drawCentredString(
+        page_width / 2,
+        12,
+        f"Page {doc.page}"
+    )
+
+    canvas.restoreState()
 
 def organize_files_by_extension(folder_path):
+    """Move files into subfolders based on their file extensions."""
+
     folder_path = Path(folder_path)
 
     if not folder_path.exists() or not folder_path.is_dir():
@@ -239,4 +244,6 @@ def organize_files_by_extension(folder_path):
         organized_count += 1
 
     return organized_count
+
+
 
