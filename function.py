@@ -211,17 +211,12 @@ def convert_txt_to_pdf(txt_path):
     return pdf_path
 
 
-def organize_files_by_extension():
-    while True:
-        folder_path = Path(
-            input("Please enter the folder path: ").strip().strip('"')
-        )
 
-        if not folder_path.exists() or not folder_path.is_dir():
-            print("Please enter a valid folder path.")
-            continue
+def organize_files_by_extension(folder_path):
+    folder_path = Path(folder_path)
 
-        break
+    if not folder_path.exists() or not folder_path.is_dir():
+        raise ValueError("Please enter a valid folder path.")
 
     files = list(folder_path.iterdir())
     organized_count = 0
@@ -243,4 +238,5 @@ def organize_files_by_extension():
         shutil.move(str(file_path), str(destination_file))
         organized_count += 1
 
-    print(f"Organization complete. {organized_count} files moved.")
+    return organized_count
+
